@@ -68,15 +68,15 @@ if __name__ == '__main__':
     parser.add_argument('path', type=str)
 
     args = parser.parse_args()
-    
+
     resample_map = {'lanczos': Image.LANCZOS, 'bilinear': Image.BILINEAR}
     resample = resample_map[args.resample]
-    
+
     sizes = [int(s.strip()) for s in args.size.split(',')]
 
     print(f'Make dataset of image sizes:', ', '.join(str(s) for s in sizes))
 
     imgset = datasets.ImageFolder(args.path)
 
-    with lmdb.open(args.out, map_size=1024 ** 4, readahead=False) as env:
+    with lmdb.open(args.out, map_size=1024 ** 3, readahead=False) as env:
         prepare(env, imgset, args.n_worker, sizes=sizes, resample=resample)

@@ -63,7 +63,7 @@ def train(conf, loader, model, ema, diffusion, optimizer, scheduler, device, wan
         optimizer.step()
 
         accumulate(
-            ema, model.module, 0 if i < conf.training.scheduler.warmup else 0.9999
+            ema, model, 0 if i < conf.training.scheduler.warmup else 0.9999
         )
 
         if dist.is_primary():
@@ -77,7 +77,7 @@ def train(conf, loader, model, ema, diffusion, optimizer, scheduler, device, wan
 
             if i % conf.evaluate.save_every == 0:
                 if conf.distributed:
-                    model_module = model.module
+                    model_module = model.modules()
 
                 else:
                     model_module = model
@@ -140,7 +140,7 @@ def main(conf):
         ckpt = torch.load(conf.ckpt, map_location=lambda storage, loc: storage)
 
         if conf.distributed:
-            model.module.load_state_dict(ckpt["model"])
+            model.modules().load_state_dict(ckpt["model"])
 
         else:
             model.load_state_dict(ckpt["model"])
