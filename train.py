@@ -8,7 +8,6 @@ from tensorfn import load_arg_config, load_wandb
 from tensorfn import distributed as dist
 from tensorfn.optim import lr_scheduler
 from tqdm import tqdm
-
 from model import UNet
 from diffusion import GaussianDiffusion, make_beta_schedule
 from dataset import MultiResolutionDataset
