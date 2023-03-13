@@ -1,5 +1,5 @@
-from typing import Optional, List
-from pydantic import StrictStr, StrictInt, StrictFloat, StrictBool
+from typing import Optional
+from pydantic import StrictStr, StrictInt, StrictBool
 from tensorfn.config import (
     MainConfig,
     Config,
@@ -8,10 +8,6 @@ from tensorfn.config import (
     DataLoader,
     Instance,
 )
-
-import diffusion
-import model
-
 
 class Dataset(Config):
     name: StrictStr

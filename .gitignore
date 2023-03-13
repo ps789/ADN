@@ -6,6 +6,9 @@ __pycache__/
 #images
 cifar10
 
+#models
+checkpoint
+
 # C extensions
 *.so
 

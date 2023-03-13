@@ -1,13 +1,9 @@
 import torch
 from tqdm import tqdm
 from torchvision.utils import save_image
-from PIL import Image
 from tensorfn import load_config
-
-from model import UNet
 from config import DiffusionConfig
-from diffusion import GaussianDiffusion, make_beta_schedule
-import numpy as np
+from diffusion import GaussianDiffusion
 
 @torch.no_grad()
 def p_sample_loop(self, model, noise, device, noise_fn=torch.randn, capture_every=1000):
@@ -32,15 +28,13 @@ def p_sample_loop(self, model, noise, device, noise_fn=torch.randn, capture_ever
 
 if __name__ == "__main__":
     conf = load_config(DiffusionConfig, "config/diffusion.conf", show=False)
-    ckpt = torch.load("checkpoint/diffusion_320000.pt")
+    ckpt = torch.load("checkpoint/diffusion_500000.pt")
     model = conf.model.make()
     model.load_state_dict(ckpt["ema"])
     model = model.to("cuda")
     betas = conf.diffusion.beta_schedule.make()
     diffusion = GaussianDiffusion(betas).to("cuda")
-    for i in range(50):
-        noise = torch.randn([200, 3, 32, 32], device="cuda")
-        imgs = p_sample_loop(diffusion, model, noise, "cuda", capture_every=1000)
-        np.save(f"diffusion_samples_{i}.npy", imgs[-1].detach().cpu().numpy())
-
-    save_image(imgs[-1], "sample.png", normalize=False, range=(-1, 1), nrow=4)
+    noise = torch.randn([100, 3, 32, 32], device="cuda")
+    imgs = p_sample_loop(diffusion, model, noise, "cuda", capture_every=1000)
+    imgs = imgs[1:]
+    save_image(imgs[-1], "sample.png", normalize=False, range=(-1, 1), nrow=10)
