@@ -5,6 +5,10 @@ __pycache__/
 
 #images
 cifar10
+eval
+
+# models
+ipynb_checkpoints
 
 # C extensions
 *.so
