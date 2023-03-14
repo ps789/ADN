@@ -32,7 +32,7 @@ def p_sample_loop(self, model, noise, device, noise_fn=torch.randn, capture_ever
 
 if __name__ == "__main__":
     conf = load_config(DiffusionConfig, "config/diffusion.conf", show=False)
-    ckpt = torch.load("checkpoint/diffusion_320000.pt")
+    ckpt = torch.load("checkpoint/diffusion_500000.pt")
     model = conf.model.make()
     model.load_state_dict(ckpt["ema"])
     model = model.to("cuda")
@@ -41,6 +41,6 @@ if __name__ == "__main__":
     for i in range(50):
         noise = torch.randn([200, 3, 32, 32], device="cuda")
         imgs = p_sample_loop(diffusion, model, noise, "cuda", capture_every=1000)
-        np.save(f"diffusion_samples_{i}.npy", imgs[-1].detach().cpu().numpy())
+        np.save(f"eval/diffusion_samples_{i}.npy", imgs[-1].detach().cpu().numpy())
 
     save_image(imgs[-1], "sample.png", normalize=False, range=(-1, 1), nrow=4)
