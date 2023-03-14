@@ -8,7 +8,7 @@ cifar10
 eval
 
 # models
-ipynb_checkpoints
+checkpoint
 
 # C extensions
 *.so

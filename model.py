@@ -233,6 +233,23 @@ class ResBlockWithAttention(nn.Module):
 
         return out
 
+# Class embedding for conditional generation
+class ClassEmbedding(nn.Module):
+    def __init__(self, num_classes, dim_H, dim_W):
+        '''
+        num_classes: number of classes in the dataset
+        dim: width/height of image (assumes square image)
+        '''
+
+        super().__init__()
+        self.dim_H = dim_H
+        self.dim_W = dim_W
+        self.embeddings = torch.nn.Embedding(num_embeddings = num_classes, embedding_dim = dim_H * dim_W)
+
+    def forward(self, class_num):
+        embed = self.embeddings(class_num)
+        embed = torch.reshape(embed, (torch.numel(class_num), 1, self.dim_H, self.dim_W))
+        return embed
 
 def spatial_fold(input, fold):
     if fold == 1:
@@ -272,6 +289,7 @@ class UNet(nn.Module):
         channel_multiplier: List[StrictInt],
         n_res_blocks: StrictInt,
         attn_strides: List[StrictInt],
+        num_classes: StrictInt,
         attn_heads: StrictInt = 1,
         use_affine_time: StrictBool = False,
         dropout: StrictFloat = 0,
@@ -291,6 +309,11 @@ class UNet(nn.Module):
             Swish(),
             linear(time_dim, time_dim),
         )
+
+        # Modifications for class-conditional generation
+        self.num_classes = num_classes
+        self.class_embedding = None
+        in_channel += 1
 
         down_layers = [conv2d(in_channel * (fold ** 2), channel, 3, padding=1)]
         feat_channels = [channel]
@@ -371,7 +394,18 @@ class UNet(nn.Module):
             conv2d(in_channel, 3 * (fold ** 2), 3, padding=1, scale=1e-10),
         )
 
-    def forward(self, input, time):
+    def forward(self, input, label, time):
+
+        # Create class embedding layer
+        if self.class_embedding is None:
+            N, C, H, W = input.shape
+            self.class_embedding = ClassEmbedding(self.num_classes, H, W)
+            self.class_embedding.to('cuda')
+        
+        # Append class embedding
+        embed = self.class_embedding(label)
+        input = torch.cat((input, embed), dim = 1)
+
         time_embed = self.time(time)
 
         feats = []

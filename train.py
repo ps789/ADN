@@ -35,11 +35,10 @@ def train(conf, loader, model, ema, diffusion, optimizer, scheduler, device, wan
     pbar = tqdm(pbar, dynamic_ncols=True)
 
     for i in pbar:
-        epoch, img = next(loader)
-        
-        # For datasets which return features and labels: discard labels
-        img = img[0]
+        epoch, data = next(loader)
+        img, labels = data
         img = img.to(device)
+        labels = labels.to(device)
 
         time = torch.randint(
             0,
@@ -47,7 +46,7 @@ def train(conf, loader, model, ema, diffusion, optimizer, scheduler, device, wan
             (img.shape[0],),
             device=device,
         )
-        loss = diffusion.p_loss(model, img, time)
+        loss = diffusion.p_loss(model, img, labels, time)
         optimizer.zero_grad()
         loss.backward()
         nn.utils.clip_grad_norm_(model.parameters(), 1)
@@ -72,7 +71,7 @@ def train(conf, loader, model, ema, diffusion, optimizer, scheduler, device, wan
                     "optimizer": optimizer.state_dict(),
                     "conf": conf,
                 },
-                f"checkpoint/diffusion_{str(i).zfill(6)}.pt",
+                f"checkpoint/conditional_diffusion/conditional_diffusion_{str(i).zfill(6)}.pt",
             )
 
 def main(conf):
@@ -112,4 +111,4 @@ if __name__ == "__main__":
     dist.launch(
         main, conf.n_gpu, conf.n_machine, conf.machine_rank, conf.dist_url, args=(conf,)
     )
-    #python train.py --n_gpu 1 --conf config/diffusion.conf 
+    #python train.py --n_gpu 1 --conf config/conditional_diffusion.conf 
