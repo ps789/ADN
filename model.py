@@ -290,6 +290,7 @@ class UNet(nn.Module):
         n_res_blocks: StrictInt,
         attn_strides: List[StrictInt],
         num_classes: StrictInt,
+        dim: StrictInt,
         attn_heads: StrictInt = 1,
         use_affine_time: StrictBool = False,
         dropout: StrictFloat = 0,
@@ -314,6 +315,7 @@ class UNet(nn.Module):
         self.num_classes = num_classes
         self.class_embedding = None
         in_channel += 1
+        self.class_embedding = ClassEmbedding(self.num_classes, dim, dim)
 
         down_layers = [conv2d(in_channel * (fold ** 2), channel, 3, padding=1)]
         feat_channels = [channel]
@@ -395,12 +397,6 @@ class UNet(nn.Module):
         )
 
     def forward(self, input, label, time):
-
-        # Create class embedding layer
-        if self.class_embedding is None:
-            N, C, H, W = input.shape
-            self.class_embedding = ClassEmbedding(self.num_classes, H, W)
-            self.class_embedding.to('cuda')
         
         # Append class embedding
         embed = self.class_embedding(label)
