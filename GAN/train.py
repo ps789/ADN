@@ -96,10 +96,10 @@ def train(args, dataloader):
             D_losses.append(errD.item())
 
             # Check how the generator is doing by saving G's output on fixed_noise
-            if (iters % 500 == 0) or ((epoch == args.num_epochs-1) and (i == len(dataloader)-1)):
-                with torch.no_grad():
-                    fake = generator(fixed_noise).detach().cpu()
-                img_list.append(vutils.make_grid(fake, padding=2, normalize=True))
+            # if (iters % 500 == 0) or ((epoch == args.num_epochs-1) and (i == len(dataloader)-1)):
+            #     with torch.no_grad():
+            #         fake = generator(fixed_noise).detach().cpu()
+            #     img_list.append(vutils.make_grid(fake, padding=2, normalize=True))
 
             iters += 1
         if epoch % args.save_model_frequency == 0:
@@ -144,7 +144,7 @@ def _parse_args():
     parser.add_argument('--batch_size', type=int,
         default=128)
     parser.add_argument('--num_workers', type=int,
-        default=1)
+        default=2)
 
     # GAN parameters
     parser.add_argument('--num_channels', type=int,
@@ -158,22 +158,20 @@ def _parse_args():
 
     # Training parameters
     parser.add_argument('--num_epochs', type=int,
-        default=100)
+        default=1000)
     parser.add_argument('--lr', type=float,
-        default=0.001)
+        default=0.00002)
     parser.add_argument('--beta1', type=float,
         default=0.5)
     parser.add_argument('--beta2', type=float,
         default=0.999)
     parser.add_argument('--cpu', action='store_true')
     parser.add_argument('--save_model_frequency', type=int,
-        default=2)
+        default=50)
     parser.add_argument('--checkpoint_location', type=str,
-        default='../checkpoint/')
+        default='../checkpoint/gan')
 
     return parser.parse_args()
-
-
 
 if __name__ == '__main__':
     args = _parse_args()
