@@ -112,9 +112,12 @@ def train(conf, loader, model, discriminator, ema, diffusion, optimizer, optimiz
             torch.save(
                 {
                     "model": model_module.state_dict(),
+                    "discriminator": discriminator.state_dict(),
                     "ema": ema.state_dict(),
                     "scheduler": scheduler.state_dict(),
                     "optimizer": optimizer.state_dict(),
+                    "scheduler_discriminator": scheduler_discriminator.state_dict(),
+                    "optimizer_discriminator": optimizer_discriminator.state_dict(),
                     "conf": conf,
                 },
                 f"checkpoint/diffusion_{str(i).zfill(6)}.pt",
@@ -140,6 +143,11 @@ def main(conf):
     ema = conf.model.make()
     ema = ema.to(device)
 
+    discriminator = time_step_discriminator.ConditionalTimeStepDiscriminator_DualHead(conf.discriminator)
+    discriminator = discriminator.to(device)
+    optimizer_discriminator = conf.training.optimizer.make(discriminator.parameters())
+    scheduler_discriminator = conf.training.scheduler.make(optimizer_discriminator)
+
     optimizer = conf.training.optimizer.make(model.parameters())
     scheduler = conf.training.scheduler.make(optimizer)
 
@@ -147,13 +155,10 @@ def main(conf):
         ckpt = torch.load(conf.ckpt, map_location=lambda storage, loc: storage)
         model.load_state_dict(ckpt["model"])
         ema.load_state_dict(ckpt["ema"])
+        discriminator.load_state_dict(ckpt["discriminator"])
 
     betas = conf.diffusion.beta_schedule.make()
     diffusion = GaussianDiffusion(betas).to(device)
-    discriminator = time_step_discriminator.ConditionalTimeStepDiscriminator_DualHead(conf.discriminator)
-    discriminator = discriminator.to(device)
-    optimizer_discriminator = conf.training.optimizer.make(discriminator.parameters())
-    scheduler_discriminator = conf.training.scheduler.make(optimizer_discriminator)
     train(conf, train_loader, model, discriminator, ema, diffusion, optimizer, optimizer_discriminator, scheduler, scheduler_discriminator, device, wandb)
 
 if __name__ == "__main__":
