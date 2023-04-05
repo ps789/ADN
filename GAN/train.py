@@ -129,7 +129,7 @@ def plot(args, dataloader):
     plt.title("Training Images")
     plt.imshow(np.transpose(vutils.make_grid(real_batch[0].to(get_device(args))[:64], padding=2, normalize=True).cpu(),(1,2,0)))
     plt.show()
-    
+
 
 def _parse_args():
     import argparse

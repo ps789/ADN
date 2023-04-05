@@ -111,6 +111,13 @@ class GaussianDiffusion(nn.Module):
         x_recon = model(x_noise, t)
 
         return F.mse_loss(x_recon, noise)
+    def samples_and_noise(self, model, x_0, t, noise=None):
+        if noise is None:
+            noise = torch.randn_like(x_0)
+
+        x_noise = self.q_sample(x_0, t, noise)
+        x_recon = model(x_noise, t)
+        return x_recon, noise, x_noise
 
     def predict_start_from_noise(self, x_t, t, noise):
         return (

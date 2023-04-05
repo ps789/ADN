@@ -36,7 +36,7 @@ def train(conf, loader, model, ema, diffusion, optimizer, scheduler, device, wan
 
     for i in pbar:
         epoch, img = next(loader)
-        
+
         # For datasets which return features and labels: discard labels
         img = img[0]
         img = img.to(device)
@@ -47,6 +47,7 @@ def train(conf, loader, model, ema, diffusion, optimizer, scheduler, device, wan
             (img.shape[0],),
             device=device,
         )
+
         loss = diffusion.p_loss(model, img, time)
         optimizer.zero_grad()
         loss.backward()
@@ -82,8 +83,8 @@ def main(conf):
         wandb.init(project="denoising diffusion")
 
     device = "cuda"
-    
-    train_set = torchvision.datasets.CIFAR10(root='./cifar10', train = True, download = True, 
+
+    train_set = torchvision.datasets.CIFAR10(root='./cifar10', train = True, download = True,
                                              transform = torchvision.transforms.ToTensor())
     train_sampler = dist.data_sampler(train_set, shuffle=True, distributed=conf.distributed)
     train_loader = conf.training.dataloader.make(train_set, sampler=train_sampler)
@@ -112,4 +113,4 @@ if __name__ == "__main__":
     dist.launch(
         main, conf.n_gpu, conf.n_machine, conf.machine_rank, conf.dist_url, args=(conf,)
     )
-    #python train.py --n_gpu 1 --conf config/diffusion.conf 
+    #python train.py --n_gpu 1 --conf config/diffusion.conf

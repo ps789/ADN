@@ -35,7 +35,10 @@ class Eval(Config):
     save_every: StrictInt
     valid_every: StrictInt
     log_every: StrictInt
-
+class Discriminator(Config):
+    num_channels: StrictInt
+    discriminator_features: StrictInt
+    cpu: StrictBool
 
 class DiffusionConfig(MainConfig):
     dataset: Dataset
@@ -43,3 +46,4 @@ class DiffusionConfig(MainConfig):
     diffusion: Diffusion
     training: Training
     evaluate: Eval
+    discriminator: Discriminator
