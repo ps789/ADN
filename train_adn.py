@@ -36,6 +36,8 @@ def train(conf, loader, model, discriminator, ema, diffusion, optimizer, optimiz
     real_label = 1.
     fake_label = 0.
     bce_loss = nn.BCELoss()
+    gloss_before_ema = 0
+    dloss_before_ema = 0
     for i in pbar:
         epoch, img = next(loader)
 
@@ -56,9 +58,9 @@ def train(conf, loader, model, discriminator, ema, diffusion, optimizer, optimiz
         label = torch.full((b_size,), real_label, dtype=torch.float, device=device)
         generator_sample, true_sample, conditional_sample = diffusion.samples_and_noise(model, img, time)
         # Forward pass real batch through D
-        conditional_changed = torch.cat((conditional_sample, time[:, None, None, None]/conf.diffusion.beta_schedule["n_timestep"]*torch.ones((conditional_sample.shape[0], 1, conditional_sample.shape[2], conditional_sample.shape[3])).to(device)), dim = 1)
-        true_changed = torch.cat((true_sample, (time[:, None, None, None]+1)/conf.diffusion.beta_schedule["n_timestep"]*torch.ones((true_sample.shape[0], 1, true_sample.shape[2], true_sample.shape[3])).to(device)), dim = 1)
-        generator_changed = torch.cat((generator_sample, (time[:, None, None, None]+1)/conf.diffusion.beta_schedule["n_timestep"]*torch.ones((generator_sample.shape[0], 1, generator_sample.shape[2], generator_sample.shape[3])).to(device)), dim = 1)
+        conditional_changed = torch.cat((conditional_sample, (time[:, None, None, None]+1)/conf.diffusion.beta_schedule["n_timestep"]*torch.ones((conditional_sample.shape[0], 1, conditional_sample.shape[2], conditional_sample.shape[3])).to(device)), dim = 1)
+        true_changed = torch.cat((true_sample, (time[:, None, None, None])/conf.diffusion.beta_schedule["n_timestep"]*torch.ones((true_sample.shape[0], 1, true_sample.shape[2], true_sample.shape[3])).to(device)), dim = 1)
+        generator_changed = torch.cat((generator_sample, (time[:, None, None, None])/conf.diffusion.beta_schedule["n_timestep"]*torch.ones((generator_sample.shape[0], 1, generator_sample.shape[2], generator_sample.shape[3])).to(device)), dim = 1)
         output = discriminator(conditional_changed, true_changed).view(-1)
         # Calculate loss on all-real batch
         errD_real = bce_loss(output, label)
@@ -95,14 +97,16 @@ def train(conf, loader, model, discriminator, ema, diffusion, optimizer, optimiz
         errG.backward()
         D_G_z2 = output.mean().item()
         # Update G
-        nn.utils.clip_grad_norm_(model.parameters(), 1)
+        #nn.utils.clip_grad_norm_(model.parameters(), 1)
         scheduler.step()
         optimizer.step()
-
+        i == conf.training.scheduler.warmup:
+            gloss_before_ema = errG
+            dloss_before_ema = errD
         accumulate(ema, model, 0 if i < conf.training.scheduler.warmup else 0.9999)
 
         lr = optimizer.param_groups[0]["lr"]
-        pbar.set_description(f"epoch: {epoch}; discriminator loss: {errD:.4f}; generator loss: {errG:.4f}; lr: {lr:.5f}")
+        pbar.set_description(f"epoch: {epoch}; discriminator loss: {errD:.4f}; generator loss: {errG:.4f}; lr: {lr:.5f}; gbe: {gloss_before_ema:4f}; gde: {dloss_before_ema:4f}")
 
         if wandb is not None and i % conf.evaluate.log_every == 0:
             wandb.log({"epoch": epoch, "discriminator loss": errD, "generator loss": errG, "lr": lr}, step=i)
