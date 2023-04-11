@@ -3,9 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.npy
+*.pot
+
 #images
 cifar10
 eval
+mscoco
 
 # models
 ipynb_checkpoints

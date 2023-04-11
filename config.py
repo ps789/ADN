@@ -9,19 +9,13 @@ from tensorfn.config import (
     Instance,
 )
 
-import diffusion
-import model
-
-
 class Dataset(Config):
     name: StrictStr
     path: StrictStr
     resolution: StrictInt
 
-
 class Diffusion(Config):
     beta_schedule: Instance
-
 
 class Training(Config):
     n_iter: StrictInt
@@ -29,12 +23,12 @@ class Training(Config):
     scheduler: Optional[Scheduler]
     dataloader: DataLoader
 
-
 class Eval(Config):
     wandb: StrictBool
     save_every: StrictInt
     valid_every: StrictInt
     log_every: StrictInt
+    
 class Discriminator(Config):
     num_channels: StrictInt
     discriminator_features: StrictInt
