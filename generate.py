@@ -56,7 +56,7 @@ if __name__ == "__main__":
     #         pickle.dump(all_imgs, p)
 
     # Generate a grid of images:
-    conf = load_config(DiffusionConfig, "config/conditional_diffusion.conf", show=False)
+    conf = load_config(DiffusionConfig, "config/improved.conf", show=False)
     ckpt = torch.load("checkpoint/conditional_diffusion/{0}.pt".format('conditional_diffusion_500000'))
     model = conf.model.make()
     model.load_state_dict(ckpt["ema"])

@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 #images
+mscoco
 cifar10
 eval
 

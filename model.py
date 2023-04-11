@@ -190,7 +190,6 @@ class TimeEmbedding(nn.Module):
         inv_freq = torch.exp(
             torch.arange(0, dim, 2, dtype=torch.float32) * (-math.log(10000) / dim)
         )
-
         self.register_buffer("inv_freq", inv_freq)
 
     def forward(self, input):
@@ -198,7 +197,6 @@ class TimeEmbedding(nn.Module):
         sinusoid_in = torch.ger(input.view(-1).float(), self.inv_freq)
         pos_emb = torch.cat([sinusoid_in.sin(), sinusoid_in.cos()], dim=-1)
         pos_emb = pos_emb.view(*shape, self.dim)
-
         return pos_emb
 
 
@@ -238,7 +236,7 @@ class ClassEmbedding(nn.Module):
     def __init__(self, num_classes, dim_H, dim_W):
         '''
         num_classes: number of classes in the dataset
-        dim: width/height of image (assumes square image)
+        dim: width/height of image
         '''
 
         super().__init__()
@@ -313,7 +311,6 @@ class UNet(nn.Module):
 
         # Modifications for class-conditional generation
         self.num_classes = num_classes
-        self.class_embedding = None
         in_channel += 1
         self.class_embedding = ClassEmbedding(self.num_classes, dim, dim)
 
@@ -401,16 +398,13 @@ class UNet(nn.Module):
         # Append class embedding
         embed = self.class_embedding(label)
         input = torch.cat((input, embed), dim = 1)
-
         time_embed = self.time(time)
-
         feats = []
 
         out = spatial_fold(input, self.fold)
         for layer in self.down:
             if isinstance(layer, ResBlockWithAttention):
                 out = layer(out, time_embed)
-
             else:
                 out = layer(out)
 
@@ -428,5 +422,4 @@ class UNet(nn.Module):
 
         out = self.out(out)
         out = spatial_unfold(out, self.fold)
-
         return out
