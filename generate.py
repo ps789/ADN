@@ -28,17 +28,27 @@ def p_sample_loop(self, model, noise, device, noise_fn=torch.randn, capture_ever
     imgs.append(img)
     return imgs
 
+@torch.no_grad()
+def generator_sample_loop(self, model, noise, device):
+    img = noise
+    N, _, _, _ = noise.shape
+    for i in tqdm(reversed(range(self.num_timesteps)), total=self.num_timesteps):
+        img = model(img, torch.tensor([i] * N, device = device))
+    return [img]
+        
 if __name__ == "__main__":
-    conf = load_config(DiffusionConfig, "config/improved.conf", show=False)
-    ckpt = torch.load("checkpoint/mscoco/diffusion/diffusion_250000.pt")
+    #conf = load_config(DiffusionConfig, "config/diffusion_adn.conf", show=False)
+    #ckpt = torch.load("checkpoint/cifar10/adn/adn_diffusion_000300.pt")
+    conf = load_config(DiffusionConfig, "config/diffusion.conf", show=False)
+    ckpt = torch.load("checkpoint/cifar10/adn/adn_diffusion_001000.pt")
     model = conf.model.make()
-    model.load_state_dict(ckpt["ema"])
+    model.load_state_dict(ckpt["model"])
     model = model.to("cuda")
     betas = conf.diffusion.beta_schedule.make()
     diffusion = GaussianDiffusion(betas).to("cuda")
     for i in range(1):
-        noise = torch.randn([16, 3, 128, 128], device="cuda")
-        imgs = p_sample_loop(diffusion, model, noise, "cuda", capture_every=1000)
+        noise = torch.randn([16, 3, 32, 32], device="cuda")
+        imgs = p_sample_loop(diffusion, model, noise, "cuda")
         # np.save(f"eval/diffusion_samples_{i}.npy", imgs[-1].detach().cpu().numpy())
 
-    save_image(imgs[-1], "sample.png", normalize=True, range=(-1, 1), nrow=4)
+    save_image(imgs[0], "sample.png", normalize=True, range=(-1, 1), nrow=4)

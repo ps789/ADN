@@ -7,6 +7,8 @@ from diffusion import GaussianDiffusion
 from config import DiffusionConfig
 import torchvision
 import time_step_discriminator
+import matplotlib.pyplot as plt
+
 def sample_data(loader):
     loader_iter = iter(loader)
     epoch = 0
@@ -45,6 +47,14 @@ def train(conf, loader, model, discriminator, ema, diffusion, optimizer, optimiz
         img = img[0]
         img = img.to(device)
 
+        # import numpy as np
+        # img = img[0]
+        # img = img.cpu().detach().numpy()
+        # img = np.transpose(img, (1, 2, 0))
+        # plt.imshow(img)
+        # plt.show()
+        # quit()
+
         time = torch.randint(
             0,
             conf.diffusion.beta_schedule["n_timestep"],
@@ -56,12 +66,12 @@ def train(conf, loader, model, discriminator, ema, diffusion, optimizer, optimiz
         # Format batch
         b_size = img.size(0)
         label = torch.full((b_size,), real_label, dtype=torch.float, device=device)
-        generator_sample, true_sample, conditional_sample = diffusion.samples_and_noise(model, img, time)
+        x_t_gen, x_t, x_t_1 = diffusion.samples_and_noise(model, img, time)
         # Forward pass real batch through D
-        conditional_changed = torch.cat((conditional_sample, (time[:, None, None, None]+1)/conf.diffusion.beta_schedule["n_timestep"]*torch.ones((conditional_sample.shape[0], 1, conditional_sample.shape[2], conditional_sample.shape[3])).to(device)), dim = 1)
-        true_changed = torch.cat((true_sample, (time[:, None, None, None])/conf.diffusion.beta_schedule["n_timestep"]*torch.ones((true_sample.shape[0], 1, true_sample.shape[2], true_sample.shape[3])).to(device)), dim = 1)
-        generator_changed = torch.cat((generator_sample, (time[:, None, None, None])/conf.diffusion.beta_schedule["n_timestep"]*torch.ones((generator_sample.shape[0], 1, generator_sample.shape[2], generator_sample.shape[3])).to(device)), dim = 1)
-        output = discriminator(conditional_changed, true_changed).view(-1)
+        x_t_1_changed = torch.cat((x_t_1, (time[:, None, None, None]+1)/conf.diffusion.beta_schedule["n_timestep"]*torch.ones((x_t_1.shape[0], 1, x_t_1.shape[2], x_t_1.shape[3])).to(device)), dim = 1)
+        x_t_changed = torch.cat((x_t, (time[:, None, None, None])/conf.diffusion.beta_schedule["n_timestep"]*torch.ones((x_t.shape[0], 1, x_t.shape[2], x_t.shape[3])).to(device)), dim = 1)
+        x_t_gen_changed = torch.cat((x_t_gen, (time[:, None, None, None])/conf.diffusion.beta_schedule["n_timestep"]*torch.ones((x_t_gen.shape[0], 1, x_t_gen.shape[2], x_t_gen.shape[3])).to(device)), dim = 1)
+        output = discriminator(x_t_1_changed, x_t_changed).view(-1)
         # Calculate loss on all-real batch
         errD_real = bce_loss(output, label)
         # Calculate gradients for D in backward pass
@@ -72,7 +82,7 @@ def train(conf, loader, model, discriminator, ema, diffusion, optimizer, optimiz
         # Generate batch of latent vectors
         label.fill_(fake_label)
         # Classify all fake batch with D
-        output = discriminator(conditional_changed, generator_changed.detach()).view(-1)
+        output = discriminator(x_t_1_changed, x_t_gen_changed.detach()).view(-1)
         # Calculate D's loss on the all-fake batch
         errD_fake = bce_loss(output, label)
         # Calculate the gradients for this batch, accumulated (summed) with previous gradients
@@ -90,14 +100,20 @@ def train(conf, loader, model, discriminator, ema, diffusion, optimizer, optimiz
         model.zero_grad()
         label.fill_(real_label)  # fake labels are real for generator cost
         # Since we just updated D, perform another forward pass of all-fake batch through D
-        output = discriminator(conditional_changed, generator_changed).view(-1)
+        output = discriminator(x_t_1_changed, x_t_gen_changed).view(-1)
         # Calculate G's loss based on this output
         errG = bce_loss(output, label)
+        mse_error = torch.nn.functional.mse_loss(x_t_gen, x_t)
+        
         # Calculate gradients for G
-        errG.backward()
+        if True: #i > 1000:
+            errG.backward()
+        else:
+            mse_error.backward()
         D_G_z2 = output.mean().item()
+
         # Update G
-        #nn.utils.clip_grad_norm_(model.parameters(), 1)
+        nn.utils.clip_grad_norm_(model.parameters(), 1)
         scheduler.step()
         optimizer.step()
         if i == conf.training.scheduler.warmup:
@@ -106,7 +122,7 @@ def train(conf, loader, model, discriminator, ema, diffusion, optimizer, optimiz
         accumulate(ema, model, 0 if i < conf.training.scheduler.warmup else 0.9999)
 
         lr = optimizer.param_groups[0]["lr"]
-        pbar.set_description(f"epoch: {epoch}; discriminator loss: {errD:.4f}; generator loss: {errG:.4f}; lr: {lr:.5f}; gbe: {gloss_before_ema:4f}; gde: {dloss_before_ema:4f}")
+        pbar.set_description(f"epoch: {epoch}; discriminator loss: {errD:.4f}; generator loss: {errG:.4f}; mse loss: {mse_error:.5f} lr: {lr:.5f}; gbe: {gloss_before_ema:4f}; gde: {dloss_before_ema:4f}")
 
         if wandb is not None and i % conf.evaluate.log_every == 0:
             wandb.log({"epoch": epoch, "discriminator loss": errD, "generator loss": errG, "lr": lr}, step=i)
@@ -124,7 +140,7 @@ def train(conf, loader, model, discriminator, ema, diffusion, optimizer, optimiz
                     "optimizer_discriminator": optimizer_discriminator.state_dict(),
                     "conf": conf,
                 },
-                f"checkpoint/adn_diffusion/adn_diffusion_{str(i).zfill(6)}.pt",
+                f"checkpoint/cifar10/adn/adn_diffusion_{str(i).zfill(6)}.pt",
             )
 
 def main(conf):
@@ -137,6 +153,7 @@ def main(conf):
 
     train_set = torchvision.datasets.CIFAR10(root='./cifar10', train = True, download = True,
                                              transform = torchvision.transforms.ToTensor())
+    #train_set = torch.utils.data.Subset(train_set, [0, 1, 2, 3, 4, 5] * 10000)
     train_sampler = dist.data_sampler(train_set, shuffle=True, distributed=conf.distributed)
     train_loader = conf.training.dataloader.make(train_set, sampler=train_sampler)
 

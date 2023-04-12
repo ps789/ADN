@@ -3,6 +3,7 @@ import math
 import torch
 from torch import nn
 from torch.nn import functional as F
+import torch.distributions as D
 
 
 def make_beta_schedule(
@@ -110,14 +111,32 @@ class GaussianDiffusion(nn.Module):
         x_noise = self.q_sample(x_0, t, noise)
         x_recon = model(x_noise, t)
 
-        return F.mse_loss(x_recon, noise)
-    def samples_and_noise(self, model, x_0, t, noise=None):
+        return
+    
+    def samples_and_noise_2(self, model, x_0, t, noise=None):
         if noise is None:
             noise = torch.randn_like(x_0)
 
         x_noise = self.q_sample(x_0, t, noise)
         x_recon = model(x_noise, t)
+
         return x_recon, noise, x_noise
+    
+    def samples_and_noise(self, model, x_0, t):
+        '''
+        returns
+        x_t_gen: Generated sample from denoised x_{t+1} to x_{t}
+        x_t: True image at x_{t} without extra noise
+        x_t_1: True image with extra noise
+        '''
+
+        # REMOVE THIS LINE LATER!!!!!
+        self.betas = torch.ones_like(self.betas)
+
+        x_t = self.q_sample(x_0, t)
+        x_t_1 = torch.normal(mean = torch.sqrt(1 - self.betas[t][:, None, None, None]) * x_t, std = torch.sqrt(torch.ones_like(x_t) * self.betas[t][:, None, None, None]))
+        x_t_gen = model(x_t_1, t)
+        return x_t_gen, x_t, x_t_1
 
     def predict_start_from_noise(self, x_t, t, noise):
         return (
