@@ -107,6 +107,7 @@ def train(args, dataloader):
                 {
                     "model": generator.state_dict(),
                     "optimizer": optimizer_generator.state_dict(),
+                    "losses": G_losses
                 },
                 f"{args.checkpoint_location}/generator_{str(epoch).zfill(6)}.pt",
             )
@@ -115,6 +116,7 @@ def train(args, dataloader):
                 {
                     "model": discriminator.state_dict(),
                     "optimizer": optimizer_discriminator.state_dict(),
+                    "losses": D_losses
                 },
                 f"{args.checkpoint_location}/discriminator_{str(epoch).zfill(6)}.pt",
             )
@@ -169,7 +171,7 @@ def _parse_args():
     parser.add_argument('--save_model_frequency', type=int,
         default=50)
     parser.add_argument('--checkpoint_location', type=str,
-        default='../checkpoint/gan')
+        default='../checkpoint/cifar10/gan')
 
     return parser.parse_args()
 

@@ -28,4 +28,4 @@ def CIFAR10DataLoader(args):
                            ]))
 
 	return DataLoader(dataset, batch_size=args.batch_size,
-                                         shuffle=True, num_workers=args.num_workers)
+                                         shuffle=True, num_workers=args.num_workers, persistent_workers = True)

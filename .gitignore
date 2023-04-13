@@ -6,6 +6,7 @@ __pycache__/
 #images
 cifar10
 eval
+mscoco
 
 # models
 ipynb_checkpoints
