@@ -30,7 +30,6 @@ class Generator(nn.Module):
             nn.Tanh()
         )
 
-
     def forward(self, input):
         return self.network(input)
 

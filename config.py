@@ -36,7 +36,7 @@ class Discriminator(Config):
 
 class DiffusionConfig(MainConfig):
     dataset: Dataset
-    model: Instance
+    generator: Instance
     diffusion: Diffusion
     training: Training
     evaluate: Eval

@@ -400,3 +400,36 @@ class UNet(nn.Module):
         out = spatial_unfold(out, self.fold)
 
         return out
+
+class SimpleGenerator(nn.Module):
+    def __init__(self):
+
+        super(SimpleGenerator, self).__init__()
+        self.latent_size = 3072
+        self.generator_features = 64
+        self.num_channels = 3
+
+        # nc = number of channels
+        # ngf = number of generator features
+        self.network = nn.Sequential(
+            # input is latent, going into a convolution
+            nn.ConvTranspose2d(self.latent_size, self.generator_features * 4, 4, 1, 0, bias=False),
+            nn.BatchNorm2d(self.generator_features * 4),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ngf*4) x 4 x 4
+            nn.ConvTranspose2d(self.generator_features * 4, self.generator_features * 2, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(self.generator_features * 2),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ngf*2) x 8 x 8
+            nn.ConvTranspose2d(self.generator_features * 2, self.generator_features, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(self.generator_features),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ngf) x 16 x 16
+            nn.ConvTranspose2d(self.generator_features, self.num_channels, 4, 2, 1, bias=False),
+            # state size. (nc) x 32 x 32
+            nn.Tanh()
+        )
+
+    def forward(self, input, t):
+        input = torch.reshape(input, (input.shape[0], -1, 1, 1))
+        return self.network(input)

@@ -1,7 +1,12 @@
-from GAN.utils import get_device
-
 import torch.nn as nn
 import torch
+
+def get_device(args):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    if args.cpu:
+        device = torch.device('cpu')
+    return device
+
 class ConditionalTimeStepDiscriminator(nn.Module):
     def __init__(self, args):
         super(ConditionalTimeStepDiscriminator, self).__init__()
@@ -13,7 +18,7 @@ class ConditionalTimeStepDiscriminator(nn.Module):
         # ndf = number of discriminator features
         self.network = nn.Sequential(
             # input is (nc) x 32 x 32
-            nn.Conv2d(self.args.num_channels*2 + 1, self.args.discriminator_features, 4, stride=2, padding=1, bias=False),
+            nn.Conv2d(self.args.num_channels, self.args.discriminator_features, 4, stride=2, padding=1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf) x 16 x 16
             nn.Conv2d(self.args.discriminator_features, self.args.discriminator_features * 2, 4, stride=2, padding=1, bias=False),
@@ -29,7 +34,7 @@ class ConditionalTimeStepDiscriminator(nn.Module):
             nn.Sigmoid()
         )
 
-    def forward(self, input):
+    def forward(self, dummy, input):
         return self.network(input)
 
 class ConditionalTimeStepDiscriminator_DualHead(nn.Module):
@@ -42,8 +47,8 @@ class ConditionalTimeStepDiscriminator_DualHead(nn.Module):
         # nc = number of channels
         # ndf = number of discriminator features
         self.network_head = nn.Sequential(
-            # input is (nc) x 32 x 32
-            nn.Conv2d(self.args.num_channels + 1, self.args.discriminator_features, 4, stride=2, padding=1, bias=False),
+            # input is (nc) x 32 x 32 
+            nn.Conv2d(self.args.num_channels, self.args.discriminator_features, 4, stride=2, padding=1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf) x 16 x 16
             nn.Conv2d(self.args.discriminator_features, self.args.discriminator_features * 2, 4, stride=2, padding=1, bias=False),
@@ -56,7 +61,7 @@ class ConditionalTimeStepDiscriminator_DualHead(nn.Module):
         )
         self.network = nn.Sequential(
             # state size. (ndf*4) x 4 x 4
-            nn.Conv2d(self.args.discriminator_features * 4 *2, 1, 4, stride=1, padding=0, bias=False),
+            nn.Conv2d(self.args.discriminator_features * 4 * 2, 1, 4, stride=1, padding=0, bias=False),
             # state size. 1 x 1 x 1
             nn.Sigmoid()
         )

@@ -131,6 +131,7 @@ class GaussianDiffusion(nn.Module):
         '''
 
         # REMOVE THIS LINE LATER!!!!!
+        # This is used to create a one-step transition from image to N(0, I)
         self.betas = torch.ones_like(self.betas)
 
         x_t = self.q_sample(x_0, t)
