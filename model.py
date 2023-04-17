@@ -402,34 +402,51 @@ class UNet(nn.Module):
         return out
 
 class SimpleGenerator(nn.Module):
-    def __init__(self):
+    def __init__(self, n_timestep, n_classes = 10):
 
         super(SimpleGenerator, self).__init__()
         self.latent_size = 3072
+        self.img_proj_size = 3072 // 2
         self.generator_features = 64
         self.num_channels = 3
+        # self.class_embed = nn.Embedding(num_embeddings=n_classes, embedding_dim = self.latent_size)
+        
+        # self.projection = nn.Linear(self.latent_size, self.img_proj_size)
 
         # nc = number of channels
         # ngf = number of generator features
         self.network = nn.Sequential(
+
             # input is latent, going into a convolution
             nn.ConvTranspose2d(self.latent_size, self.generator_features * 4, 4, 1, 0, bias=False),
             nn.BatchNorm2d(self.generator_features * 4),
             nn.LeakyReLU(0.2, inplace=True),
+
             # state size. (ngf*4) x 4 x 4
             nn.ConvTranspose2d(self.generator_features * 4, self.generator_features * 2, 4, 2, 1, bias=False),
             nn.BatchNorm2d(self.generator_features * 2),
             nn.LeakyReLU(0.2, inplace=True),
+
             # state size. (ngf*2) x 8 x 8
             nn.ConvTranspose2d(self.generator_features * 2, self.generator_features, 4, 2, 1, bias=False),
             nn.BatchNorm2d(self.generator_features),
             nn.LeakyReLU(0.2, inplace=True),
+
             # state size. (ngf) x 16 x 16
             nn.ConvTranspose2d(self.generator_features, self.num_channels, 4, 2, 1, bias=False),
+            
             # state size. (nc) x 32 x 32
             nn.Tanh()
         )
 
     def forward(self, input, t):
-        input = torch.reshape(input, (input.shape[0], -1, 1, 1))
+        N, _, _, _ = input.shape
+        # input = torch.reshape(input, (N, -1))
+        # input = self.projection(input)
+        # t_embed = torch.sin(torch.arange(0, self.latent_size, device = "cuda")[None, :] * (t + 1)[:, None])
+        # input = torch.cat((input, t_embed), dim = 1)
+        # input = input + t_embed
+        input = torch.reshape(input, (N, -1, 1, 1))
         return self.network(input)
+    
+    

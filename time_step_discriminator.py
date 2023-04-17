@@ -20,16 +20,20 @@ class ConditionalTimeStepDiscriminator(nn.Module):
             # input is (nc) x 32 x 32
             nn.Conv2d(self.args.num_channels, self.args.discriminator_features, 4, stride=2, padding=1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
+
             # state size. (ndf) x 16 x 16
             nn.Conv2d(self.args.discriminator_features, self.args.discriminator_features * 2, 4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(self.args.discriminator_features * 2),
             nn.LeakyReLU(0.2, inplace=True),
+
             # state size. (ndf*2) x 8 x 8
             nn.Conv2d(self.args.discriminator_features * 2, self.args.discriminator_features * 4, 4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(self.args.discriminator_features * 4),
             nn.LeakyReLU(0.2, inplace=True),
+
             # state size. (ndf*4) x 4 x 4
             nn.Conv2d(self.args.discriminator_features * 4, 1, 4, stride=1, padding=0, bias=False),
+
             # state size. 1 x 1 x 1
             nn.Sigmoid()
         )
@@ -50,10 +54,12 @@ class ConditionalTimeStepDiscriminator_DualHead(nn.Module):
             # input is (nc) x 32 x 32 
             nn.Conv2d(self.args.num_channels, self.args.discriminator_features, 4, stride=2, padding=1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
+
             # state size. (ndf) x 16 x 16
             nn.Conv2d(self.args.discriminator_features, self.args.discriminator_features * 2, 4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(self.args.discriminator_features * 2),
             nn.LeakyReLU(0.2, inplace=True),
+
             # state size. (ndf*2) x 8 x 8
             nn.Conv2d(self.args.discriminator_features * 2, self.args.discriminator_features * 4, 4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(self.args.discriminator_features * 4),
@@ -62,6 +68,7 @@ class ConditionalTimeStepDiscriminator_DualHead(nn.Module):
         self.network = nn.Sequential(
             # state size. (ndf*4) x 4 x 4
             nn.Conv2d(self.args.discriminator_features * 4 * 2, 1, 4, stride=1, padding=0, bias=False),
+
             # state size. 1 x 1 x 1
             nn.Sigmoid()
         )

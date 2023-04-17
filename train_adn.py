@@ -8,6 +8,7 @@ from config import DiffusionConfig
 import torchvision
 import time_step_discriminator
 
+
 # Sample data from dataloder
 def sample_data(loader):
     loader_iter = iter(loader)
@@ -42,6 +43,8 @@ def train(conf, loader, generator, discriminator, ema, diffusion, optimizer_gene
     real_label = 1.
     fake_label = 0.
     bce_loss = nn.BCELoss()
+    g_losses = []
+    d_losses = []
 
     for i in pbar:
         epoch, img = next(loader)
@@ -58,12 +61,22 @@ def train(conf, loader, generator, discriminator, ema, diffusion, optimizer_gene
         label = torch.full((b_size,), real_label, dtype=torch.float, device=device)
         x_t_gen, x_t, x_t_1 = diffusion.samples_and_noise(generator, img, time)
 
+        # DEBUG: Show images
+        # import numpy as np
+        # import matplotlib.pyplot as plt
+        # for i in range(len(x_t_1)):
+        #     img_plot = np.transpose((x_t_1[i].cpu().detach().numpy() + 1) / 2, (1, 2, 0))
+        #     plt.figure()
+        #     plt.imshow(img_plot)
+        #     plt.xlabel(time[i])
+        # plt.show()
+        # quit()
+
         # Forward pass real batch through D
         discriminator.zero_grad()
-        # x_t_1_changed = torch.cat((x_t_1, (time[:, None, None, None]+1)/conf.diffusion.beta_schedule["n_timestep"]*torch.ones((x_t_1.shape[0], 1, x_t_1.shape[2], x_t_1.shape[3])).to(device)), dim = 1)
-        # x_t_changed = torch.cat((x_t, (time[:, None, None, None])/conf.diffusion.beta_schedule["n_timestep"]*torch.ones((x_t.shape[0], 1, x_t.shape[2], x_t.shape[3])).to(device)), dim = 1)
-        # x_t_gen_changed = torch.cat((x_t_gen, (time[:, None, None, None])/conf.diffusion.beta_schedule["n_timestep"]*torch.ones((x_t_gen.shape[0], 1, x_t_gen.shape[2], x_t_gen.shape[3])).to(device)), dim = 1)
-        # output = discriminator(x_t_1_changed, x_t_changed).view(-1)
+        x_t_1_changed = torch.cat((x_t_1, (time[:, None, None, None]+1)/conf.diffusion.beta_schedule["n_timestep"]*torch.ones((x_t_1.shape[0], 1, x_t_1.shape[2], x_t_1.shape[3])).to(device)), dim = 1)
+        x_t_changed = torch.cat((x_t, (time[:, None, None, None])/conf.diffusion.beta_schedule["n_timestep"]*torch.ones((x_t.shape[0], 1, x_t.shape[2], x_t.shape[3])).to(device)), dim = 1)
+        x_t_gen_changed = torch.cat((x_t_gen, (time[:, None, None, None])/conf.diffusion.beta_schedule["n_timestep"]*torch.ones((x_t_gen.shape[0], 1, x_t_gen.shape[2], x_t_gen.shape[3])).to(device)), dim = 1)
         output = discriminator(x_t_1, x_t).view(-1)
 
         # Calculate loss on all-real batch
@@ -117,6 +130,9 @@ def train(conf, loader, generator, discriminator, ema, diffusion, optimizer_gene
         if wandb is not None and i % conf.evaluate.log_every == 0:
             wandb.log({"epoch": epoch, "discriminator loss": errD, "generator loss": errG, "lr": lr}, step=i)
 
+        g_losses.append(errG)
+        d_losses.append(errD)
+
         if i % conf.evaluate.save_every == 0:
             torch.save(
                 {
@@ -129,12 +145,12 @@ def train(conf, loader, generator, discriminator, ema, diffusion, optimizer_gene
                     "scheduler_discriminator": scheduler_discriminator.state_dict(),
                     "optimizer_discriminator": optimizer_discriminator.state_dict(),
                     "conf": conf,
+
+                    "disc_losses": d_losses,
+                    "gen_losses": g_losses
                 },
                 f"checkpoint/cifar10/adn/adn_diffusion_{str(i).zfill(6)}.pt",
             )
-
-def center_img(img):
-    return (img - 0.5) * 2
 
 def main(conf):
     wandb = None
@@ -145,7 +161,7 @@ def main(conf):
     device = "cuda"
     transforms = torchvision.transforms.Compose(
         [torchvision.transforms.ToTensor(),
-         torchvision.transforms.Lambda(center_img)]
+         torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
     )
     train_set = torchvision.datasets.CIFAR10(root='./cifar10', train = True, download = True,
                                              transform = transforms)
@@ -160,7 +176,7 @@ def main(conf):
     ema = conf.generator.make()
     ema = ema.to(device)
 
-    discriminator = time_step_discriminator.ConditionalTimeStepDiscriminator(conf.discriminator)
+    discriminator = time_step_discriminator.ConditionalTimeStepDiscriminator_DualHead(conf.discriminator)
     discriminator = discriminator.to(device)
     optimizer_discriminator = conf.training.optimizer.make(discriminator.parameters())
     scheduler_discriminator = conf.training.scheduler.make(optimizer_discriminator)

@@ -32,6 +32,13 @@ def make_beta_schedule(
         betas = 1 - alphas[1:] / alphas[:-1]
         betas = betas.clamp(max=0.999)
 
+    elif schedule == 'custom':
+        betas = torch.tensor([0.05, 0.75])
+            # torch.linspace(
+            #     linear_start ** 0.5, linear_end ** 0.5, n_timestep, dtype=torch.float64
+            # )
+            # ** 2
+
     return betas
 
 
@@ -132,7 +139,7 @@ class GaussianDiffusion(nn.Module):
 
         # REMOVE THIS LINE LATER!!!!!
         # This is used to create a one-step transition from image to N(0, I)
-        self.betas = torch.ones_like(self.betas)
+        # self.betas = torch.ones_like(self.betas)
 
         x_t = self.q_sample(x_0, t)
         x_t_1 = torch.normal(mean = torch.sqrt(1 - self.betas[t][:, None, None, None]) * x_t, std = torch.sqrt(torch.ones_like(x_t) * self.betas[t][:, None, None, None]))
