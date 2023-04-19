@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 *.npy
 *.pot
-
+checkpoint
 #images
 cifar10
 eval
