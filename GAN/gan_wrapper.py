@@ -6,6 +6,7 @@ from tqdm import tqdm
 import torch.nn as nn
 from models import Generator, Discriminator
 from utils import get_device, weights_init
+
 class GAN_Wrapper(nn.Module):
     def __init__(self, args):
         super(GAN_Wrapper, self).__init__()
@@ -25,6 +26,7 @@ class GAN_Wrapper(nn.Module):
 
     def forward(self, input):
         return self.generator(input)
+    
     def train_batch(self, args, data, return_image):
 
         fixed_noise = torch.randn(64, args.latent_size, 1, 1, device=self.device)
