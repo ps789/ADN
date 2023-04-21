@@ -10,7 +10,7 @@ def get_args():
     parser.add_argument('--image_size', type=int,
         default=32)
     parser.add_argument('--batch_size', type=int,
-        default=64)
+        default=32)
     parser.add_argument('--num_workers', type=int,
         default=4)
 
@@ -40,7 +40,7 @@ def get_args():
         default=10)
     parser.add_argument('--checkpoint_path', type=str,
         default='checkpoint\\cifar10\\chain_gan')
-    
+
     # Diffusion parameters
     parser.add_argument('--beta_schedule', type=str,
         default='custom')

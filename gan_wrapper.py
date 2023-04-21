@@ -8,7 +8,7 @@ from models import Generator, Discriminator
 from utils import get_device, weights_init
 
 class GAN_Wrapper(nn.Module):
-    def __init__(self, args):
+    def __init__(self, args, t):
         super(GAN_Wrapper, self).__init__()
 
         self.args = args
@@ -23,11 +23,12 @@ class GAN_Wrapper(nn.Module):
         self.generator.apply(weights_init)
         self.discriminator.apply(weights_init)
         self.loss = nn.BCELoss()
+        self.t = t
 
     def forward(self, input):
         return self.generator(input)
-    
-    def train_batch(self, args, tgt, src):
+
+    def train_batch(self, args, tgt, diffusion_process):
 
         real_label = 1.
         fake_label = 0.
@@ -38,7 +39,7 @@ class GAN_Wrapper(nn.Module):
         # Update D
         self.discriminator.zero_grad()
         # Forward pass real batch through D
-        output = self.discriminator(tgt,).view(-1)
+        output = self.discriminator(diffusion_process.q_sample(tgt, torch.tensor([self.t-1] * args.batch_size, device = self.device))).view(-1)
         # Calculate loss on all-real batch
         errD_real = self.loss(output, label)
         # Calculate gradients for D in backward pass
@@ -47,7 +48,7 @@ class GAN_Wrapper(nn.Module):
 
         ## Train with all-fake batch
         # Generate fake image batch with G
-        fake = self.generator(src)
+        fake = self.generator(diffusion_process.q_sample(tgt, torch.tensor([self.t] * args.batch_size, device = self.device)))
         label.fill_(fake_label)
         # Classify all fake batch with D
         output = self.discriminator(fake.detach()).view(-1)

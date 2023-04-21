@@ -13,12 +13,12 @@ class Chain_GAN(nn.Module):
         # t = 0: GAN which takes as input white noise
         # t = T: GAN which outputs the generated image
         self.gans = nn.ModuleList()
-        for _ in range(args.n_gan):
-            self.gans.append(GAN_Wrapper(args))
+        for t in range(args.n_gan):
+            self.gans.append(GAN_Wrapper(args, t+1))
 
     # Forward pass the entire chain of GANs
     def forward(self, chain_start = 0, chain_end = None, input = None, output_img = False):
-        
+
         # Default values: run entire chain with random noise input
         if chain_end is None:
             chain_end = self.args.n_gan
@@ -30,17 +30,12 @@ class Chain_GAN(nn.Module):
             output = self.gans[i](input)
             input = output
         return input
-    
+
     # Train a single GAN in the chain
-    def train_link(self, noise, tgt, gan_idx, src = None):
-
-        # Forward pass up until gan_idx if src is not provided
-        if src is None:
-            src = self.forward(chain_start = 0, chain_end = gan_idx, input = noise)
-        src.detach()
-        
+    def train_link(self, tgt, gan_idx, diffusion_process):
+        print("hi")
+        print(len(self.gans))
+        print(gan_idx)
         # Train the GAN
-        err_G, err_D, _, _, _ = self.gans[gan_idx].train_batch(self.args, tgt, src)
+        err_G, err_D, _, _, _ = self.gans[gan_idx].train_batch(self.args, tgt, diffusion_process)
         return err_G, err_D
-
-    
