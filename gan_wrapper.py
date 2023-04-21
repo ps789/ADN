@@ -27,18 +27,18 @@ class GAN_Wrapper(nn.Module):
     def forward(self, input):
         return self.generator(input)
     
-    def train_batch(self, args, data, return_image):
+    def train_batch(self, args, tgt, src):
 
-        fixed_noise = torch.randn(64, args.latent_size, 1, 1, device=self.device)
         real_label = 1.
         fake_label = 0.
-        self.discriminator.zero_grad()
+
         # Format batch
-        real_cpu = data
-        b_size = real_cpu.size(0)
-        label = torch.full((b_size,), real_label, dtype=torch.float, device=self.device)
+        label = torch.full((args.batch_size,), real_label, dtype=torch.float, device=self.device)
+
+        # Update D
+        self.discriminator.zero_grad()
         # Forward pass real batch through D
-        output = self.discriminator(real_cpu).view(-1)
+        output = self.discriminator(tgt,).view(-1)
         # Calculate loss on all-real batch
         errD_real = self.loss(output, label)
         # Calculate gradients for D in backward pass
@@ -46,10 +46,8 @@ class GAN_Wrapper(nn.Module):
         D_x = output.mean().item()
 
         ## Train with all-fake batch
-        # Generate batch of latent vectors
-        noise = torch.randn(b_size, args.latent_size, 1, 1, device=self.device)
         # Generate fake image batch with G
-        fake = self.generator(noise)
+        fake = self.generator(src)
         label.fill_(fake_label)
         # Classify all fake batch with D
         output = self.discriminator(fake.detach()).view(-1)
@@ -63,9 +61,7 @@ class GAN_Wrapper(nn.Module):
         # Update D
         self.optimizer_discriminator.step()
 
-        ############################
-        # (2) Update G network: maximize log(D(G(z)))
-        ###########################
+        # Update G
         self.generator.zero_grad()
         label.fill_(real_label)  # fake labels are real for generator cost
         # Since we just updated D, perform another forward pass of all-fake batch through D
@@ -77,6 +73,5 @@ class GAN_Wrapper(nn.Module):
         D_G_z2 = output.mean().item()
         # Update G
         self.optimizer_generator.step()
-        fake = self.generator(fixed_noise).detach().cpu()
 
-        return errG.item(), errD.item(), D_x, D_G_z1, D_G_z2, None if return_image else vutils.make_grid(fake, padding=2, normalize=True)
+        return errG.item(), errD.item(), D_x, D_G_z1, D_G_z2

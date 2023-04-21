@@ -1,5 +1,4 @@
 import math
-
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -10,12 +9,7 @@ def make_beta_schedule(
     schedule, n_timestep, linear_start=1e-4, linear_end=2e-2, cosine_s=8e-3
 ):
     if schedule == "quad":
-        betas = (
-            torch.linspace(
-                linear_start ** 0.5, linear_end ** 0.5, n_timestep, dtype=torch.float64
-            )
-            ** 2
-        )
+        betas = (torch.linspace(linear_start ** 0.5, linear_end ** 0.5, n_timestep, dtype=torch.float64) ** 2)
 
     elif schedule == "linear":
         betas = torch.linspace(
@@ -33,10 +27,10 @@ def make_beta_schedule(
         betas = betas.clamp(max=0.999)
 
     elif schedule == 'custom':
-        betas = torch.tensor([0.05, 0.75])
+        betas = torch.tensor([0.15, 0.75])
+        # betas = torch.tensor([0.05, 0.75])
 
     return betas
-
 
 def extract(input, t, shape):
     out = torch.gather(input, 0, t)
@@ -44,7 +38,6 @@ def extract(input, t, shape):
     out = out.reshape(*reshape)
 
     return out
-
 
 def noise_like(shape, noise_fn, device, repeat=False):
     if repeat:
@@ -55,7 +48,6 @@ def noise_like(shape, noise_fn, device, repeat=False):
 
     else:
         return noise_fn(*shape, device=device)
-
 
 class GaussianDiffusion(nn.Module):
     def __init__(self, betas):
@@ -116,15 +108,6 @@ class GaussianDiffusion(nn.Module):
 
         return
     
-    def samples_and_noise_2(self, model, x_0, t, noise=None):
-        if noise is None:
-            noise = torch.randn_like(x_0)
-
-        x_noise = self.q_sample(x_0, t, noise)
-        x_recon = model(x_noise, t)
-
-        return x_recon, noise, x_noise
-    
     def samples_and_noise(self, model, x_0, t):
         '''
         returns
@@ -132,10 +115,6 @@ class GaussianDiffusion(nn.Module):
         x_t: True image at x_{t} without extra noise
         x_t_1: True image with extra noise
         '''
-
-        # REMOVE THIS LINE LATER!!!!!
-        # This is used to create a one-step transition from image to N(0, I)
-        # self.betas = torch.ones_like(self.betas)
 
         x_t = self.q_sample(x_0, t)
         x_t_1 = torch.normal(mean = torch.sqrt(1 - self.betas[t][:, None, None, None]) * x_t, std = torch.sqrt(torch.ones_like(x_t) * self.betas[t][:, None, None, None]))
