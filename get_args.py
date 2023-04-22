@@ -24,11 +24,11 @@ def get_args():
     parser.add_argument('--discriminator_features', type=int,
         default=64)
     parser.add_argument('--n_gan', type=int,
-        default=2)
+        default=10)
 
     # Training parameters
     parser.add_argument('--num_epochs', type=int,
-        default=100)
+        default=500)
     parser.add_argument('--lr', type=float,
         default=0.001)
     parser.add_argument('--beta1', type=float,

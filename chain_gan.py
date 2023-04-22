@@ -14,7 +14,7 @@ class Chain_GAN(nn.Module):
         # t = T: GAN which outputs the generated image
         self.gans = nn.ModuleList()
         for t in range(args.n_gan):
-            self.gans.append(GAN_Wrapper(args, t+1))
+            self.gans.append(GAN_Wrapper(args, t))
 
     # Forward pass the entire chain of GANs
     def forward(self, chain_start = 0, chain_end = None, input = None, output_img = False):
@@ -27,15 +27,18 @@ class Chain_GAN(nn.Module):
 
         # Iterate through the chain
         for i in range(chain_start, chain_end):
-            output = self.gans[i](input)
+            output = self.gans[chain_end - 1 - i](input)
             input = output
         return input
 
     # Train a single GAN in the chain
     def train_link(self, tgt, gan_idx, diffusion_process):
-        print("hi")
-        print(len(self.gans))
-        print(gan_idx)
         # Train the GAN
         err_G, err_D, _, _, _ = self.gans[gan_idx].train_batch(self.args, tgt, diffusion_process)
+        return err_G, err_D
+
+    # Train a single GAN in the chain
+    def train_link_generator(self, tgt, gan_idx, diffusion_process):
+        # Train the GAN
+        err_G, err_D, _, _, _ = self.gans[gan_idx].train_batch_generator(self.args, tgt, diffusion_process)
         return err_G, err_D

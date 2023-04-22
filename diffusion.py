@@ -27,7 +27,7 @@ def make_beta_schedule(
         betas = betas.clamp(max=0.999)
 
     elif schedule == 'custom':
-        betas = torch.tensor([0.15, 0.75])
+        betas = torch.tensor([0.2, 0.2,0.2, 0.2,0.2, 0.2,0.2, 0.2,0.2, 0.2])
         # betas = torch.tensor([0.05, 0.75])
 
     return betas
@@ -107,7 +107,7 @@ class GaussianDiffusion(nn.Module):
         x_recon = model(x_noise, t)
 
         return
-    
+
     def samples_and_noise(self, model, x_0, t):
         '''
         returns
