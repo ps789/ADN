@@ -27,7 +27,7 @@ def make_beta_schedule(
         betas = betas.clamp(max=0.999)
 
     elif schedule == 'custom':
-        betas = torch.tensor([0.2, 0.2,0.2, 0.2,0.2, 0.2,0.2, 0.2,0.2, 0.2])
+        betas = torch.tensor([0.2] * 10)
         # betas = torch.tensor([0.05, 0.75])
 
     return betas

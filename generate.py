@@ -13,9 +13,9 @@ if __name__ == '__main__':
     dataloader = CIFAR10DataLoader(args)
     device = get_device(args)
     chain_gan = Chain_GAN(args).to(device)
-    checkpoint = torch.load(os.path.join(args.checkpoint_path, 'chain_gan_100.pt'))
+    checkpoint = torch.load(os.path.join(args.checkpoint_path, 'chain_gan_50.pt'))
     chain_gan.load_state_dict(checkpoint['model_state_dict'])
 
     # Forward pass
-    generated_img = chain_gan(output_img = True)
-    torchvision.utils.save_image(generated_img, "sample.png", normalize=True, range=(-1, 1), nrow=8)
+    generated_img = chain_gan(save_img = True)
+

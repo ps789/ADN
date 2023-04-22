@@ -28,7 +28,7 @@ def get_args():
 
     # Training parameters
     parser.add_argument('--num_epochs', type=int,
-        default=500)
+        default=100)
     parser.add_argument('--lr', type=float,
         default=0.001)
     parser.add_argument('--beta1', type=float,
